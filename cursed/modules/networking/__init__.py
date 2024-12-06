@@ -7,7 +7,6 @@ import json
 import typing
 from enum import Enum
 from typing import Protocol
-import nftables
 
 import dateutil.parser
 from pyroute2 import NDB, WireGuard, IPRoute
