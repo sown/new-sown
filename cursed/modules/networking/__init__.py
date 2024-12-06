@@ -4,27 +4,38 @@ from ipaddress import IPv4Network, IPv6Network
 import datetime
 import ipaddress
 from enum import Enum
+from typing import Protocol
+from abc import abstractmethod
 
 import dateutil.parser
 from pyroute2 import NDB, WireGuard, IPRoute
 
-class TunnelInterface:
+class TunnelInterface(Protocol):
     """ Generic tunnel interface """
     class TunnelType(Enum):
         """ Possible tunnel types """
         WIREGUARD = 1
 
+    int_type: TunnelType
+    ifname: str
+    peer_addrs: list[IPv4Network | IPv6Network]
+    local_addrs: list[IPv4Network | IPv6Network]
+    interface_created: bool
+
+    @abstractmethod
     def getbasename(self) -> str:
         """ Get interface base name, for example sown-wg """
-        raise NotImplementedError("getbasename() not implemented")
+        raise NotImplementedError
     
+    @abstractmethod
     def setup_interface(self) -> None:
         """ Set up interface (create device, add IPs, etc) """
-        raise NotImplementedError("setup_interface() not implemented")
+        raise NotImplementedError
     
+    @abstractmethod
     def delete_interface(self) -> None:
         """ Delete interface (delete device, down interface) """
-        raise NotImplementedError("setup_interface() not implemented")
+        raise NotImplementedError
 
     # Find the next available name to give this interface
     def __get_next_int_name_for_type(self) -> str:
