@@ -3,7 +3,7 @@ name: Run checks
 on: [push]
 
 jobs:
-  pylint:
+  python-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -21,3 +21,6 @@ jobs:
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py') --fail-under 7 --fail-on E
+    - name: Running unit tests
+      run: |
+        sudo python3 cursed/run_tests.py
