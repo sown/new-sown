@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint pyroute2 dateutil
+        pip install pylint pyroute2 python-dateutil
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py') --fail-under 7 --fail-on E
