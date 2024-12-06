@@ -5,7 +5,7 @@ import ipaddress
 from pyroute2 import NDB, WireGuard, IPRoute
 
 class TestWireguardTunnel(unittest.TestCase):
-    def test_wg_lifecycle(self):
+    def test_wg_interface_lifecycle(self):
         import modules.networking
         tun = modules.networking.WireguardTunnel(
             [ipaddress.ip_network("192.0.0.2/32")],
@@ -33,6 +33,25 @@ class TestWireguardTunnel(unittest.TestCase):
         with IPRoute() as ipr:
                 interface = ipr.link_lookup(ifname=tun.ifname)
                 self.assertEqual(len(interface), 0) # Have we succesfully got rid of it?
+
+class TestNFTablesFeatures(unittest.TestCase):
+    def test_nftables_build_simple_statement(self):
+        from modules.networking import NFTablesStatement
+        statement = NFTablesStatement(NFTablesStatement.StatementType.ACCEPT)
+
+        self.assertEqual(statement.convert_to_dict(), {"accept":None})
+
+    def test_nftables_build_complex_statement(self):
+        from modules.networking import NFTablesStatement
+        statement = NFTablesStatement(NFTablesStatement.StatementType.REJECT,"with icmpv6 type no-route")
+
+        self.assertEqual(statement.convert_to_dict(), {"reject":"with icmpv6 type no-route"})
+
+    def test_nftables_match(self):
+        from modules.networking import NFTablesMatch
+        match = NFTablesMatch("ip length", NFTablesMatch.OperatorType.EQUAL, "1000")
+
+        self.assertEqual(match.convert_to_dict(), {"left":"ip length","right":"1000","op":"eq"})
 
 # Run the tests!
 if __name__ == '__main__':

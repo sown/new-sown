@@ -3,9 +3,11 @@
 from ipaddress import IPv4Network, IPv6Network
 import datetime
 import ipaddress
+import json
+import typing
 from enum import Enum
 from typing import Protocol
-from abc import abstractmethod
+import nftables
 
 import dateutil.parser
 from pyroute2 import NDB, WireGuard, IPRoute
@@ -132,3 +134,88 @@ class WireguardTunnel(TunnelInterface):
         self.own_privkey = own_privkey
         self.listen_port = listen_port
         super().__init__(TunnelInterface.TunnelType.WIREGUARD, peer_addrs, local_addrs, auto_name=auto_name)
+
+class NFTablesEntry(Protocol):
+    """ Manage firewall rules """
+    class RuleType(Enum):
+        """ Possible nftables rule types """
+        ADD = "add"
+        FLUSH = "flush"
+        DELETE = "delete"
+        REPLACE = "replace"
+        CREATE = "create"
+        INSERT = "insert"
+        # As of now have not included RESET as this system is more for setting up dial-in firewalls
+        # TODO: Review this
+
+    class ObjectType(Enum):
+        """ Possible nftables object types """
+        TABLE = "table"
+        SET = "set"
+        CHAIN = "chain"
+        RULE = "rule"
+        # TODO: The rest?
+
+    obj_type: ObjectType
+    # TODO: methods
+
+class NFTablesMatch:
+    """ Describes a single nftables match expression """
+    class OperatorType(Enum):
+        """ nftables builtin operators """
+        EQUAL = "eq"
+        NOT_EQUAL = "ne"
+        LESS_THAN = "lt"
+        GREATER_THAN = "gt"
+        LESS_EQUAL = "le"
+        GREATER_EQUAL = "ge"
+        NONE = "" # TODO: determine whether this is actually needed!
+
+    left: str
+    right: str
+    op: OperatorType
+
+    def __init__(self, left: str, op: OperatorType, right: str):
+        """ Generic constructor for match expression """
+        self.left = left
+        self.right = right
+        self.op = op
+
+    def convert_to_dict(self):
+        """ Convert into libnftables JSON schema compliant format """
+        return {"left":self.left, "right":self.right, "op":self.op.value}
+
+class NFTablesStatement: 
+    """ Describes an nftables statement """
+    class StatementType(Enum):
+        """ nftables statement types """
+        ACCEPT = {"name":"accept","needs_extra":False}
+        DROP = {"name":"drop","needs_extra":False}
+        QUEUE = {"name":"accept","needs_extra":None} # None means it **CAN** have extra
+        CONTINUE = {"name":"continue","needs_extra":False}
+        RETURN = {"name":"return","needs_extra":False}
+        JUMP = {"name":"jump","needs_extra":True}
+        GOTO = {"name":"goto","needs_extra":True}
+        REJECT = {"name":"reject","needs_extra":None}
+        COUNTER = {"name":"counter","needs_extra":None}
+        LIMIT = {"name":"limit","needs_extra":True}
+        DNAT = {"name":"dnat","needs_extra":True}
+        SNAT = {"name":"snat","needs_extra":True}
+        MASQUERADE = {"name":"masquerade","needs_extra":False}
+
+    s_type: StatementType
+    extra: str # For types that need it, for instance `dnat [[to 192.168.1.1]]` == {type: DNAT, extra: "to 192.168.1.1"} 
+
+    def __init__(self, s_type: StatementType, extra: typing.Optional[str] = None):
+        """ Generic constructor """#
+        if s_type.value["needs_extra"] is not False and extra is None:
+            raise ValueError("Extra information must be provided for this statment type: "+s_type.name)
+        if s_type.value["needs_extra"] is False and extra is not None:
+            raise ValueError("Extra information must not be provided for this statement type: "+s_type.name)
+        self.s_type = s_type
+        self.extra = extra
+
+    def convert_to_dict(self):
+        """ Convert into libnftables JSON schema compliant format """
+        return {self.s_type.value["name"]: self.extra}
+
