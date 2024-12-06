@@ -1,5 +1,5 @@
 """ Manages network interfaces, addresses and firewalls """
-# pylint: disable=trailing-whitespace, line-too-long, no-name-in-module
+# pylint: disable=trailing-whitespace, line-too-long, no-name-in-module, no-member
 from ipaddress import IPv4Network, IPv6Network
 import datetime
 import ipaddress
