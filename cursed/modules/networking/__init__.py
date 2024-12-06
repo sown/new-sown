@@ -1,5 +1,5 @@
 """ Manages network interfaces, addresses and firewalls """
-# pylint: disable=trailing-whitespace, line-too-long, no-name-in-module, no-member
+# pylint: disable=trailing-whitespace, line-too-long, no-name-in-module
 from ipaddress import IPv4Network, IPv6Network
 import datetime
 import ipaddress
@@ -22,20 +22,14 @@ class TunnelInterface(Protocol):
     local_addrs: list[IPv4Network | IPv6Network]
     interface_created: bool
 
-    @abstractmethod
     def getbasename(self) -> str:
         """ Get interface base name, for example sown-wg """
-        raise NotImplementedError
     
-    @abstractmethod
     def setup_interface(self) -> None:
         """ Set up interface (create device, add IPs, etc) """
-        raise NotImplementedError
     
-    @abstractmethod
     def delete_interface(self) -> None:
         """ Delete interface (delete device, down interface) """
-        raise NotImplementedError
 
     # Find the next available name to give this interface
     def __get_next_int_name_for_type(self) -> str:
