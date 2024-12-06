@@ -1,21 +1,29 @@
-from enum import Enum
-from pyroute2 import NDB, WireGuard, IPRoute
-import ipaddress
+""" Manages network interfaces, addresses and firewalls """
+# pylint: disable=trailing-whitespace, line-too-long, no-name-in-module
 from ipaddress import IPv4Network, IPv6Network
-import dateutil.parser
 import datetime
+import ipaddress
+from enum import Enum
+
+import dateutil.parser
+from pyroute2 import NDB, WireGuard, IPRoute
 
 class TunnelInterface:
+    """ Generic tunnel interface """
     class TunnelType(Enum):
+        """ Possible tunnel types """
         WIREGUARD = 1
 
     def getbasename(self) -> str:
+        """ Get interface base name, for example sown-wg """
         raise NotImplementedError("getbasename() not implemented")
     
     def setup_interface(self) -> None:
+        """ Set up interface (create device, add IPs, etc) """
         raise NotImplementedError("setup_interface() not implemented")
     
     def delete_interface(self) -> None:
+        """ Delete interface (delete device, down interface) """
         raise NotImplementedError("setup_interface() not implemented")
 
     # Find the next available name to give this interface
@@ -31,7 +39,8 @@ class TunnelInterface:
 
         return ifname
 
-    def __init__(self, int_type: TunnelType, peer_addrs: list[IPv4Network | IPv6Network], local_addrs: list[IPv4Network | IPv6Network], auto_name = True):
+    def __init__(self, int_type: TunnelType, peer_addrs: list[IPv4Network | IPv6Network], 
+                 local_addrs: list[IPv4Network | IPv6Network], auto_name = True):
         self.int_type = int_type
         if auto_name:
             self.ifname = self.__get_next_int_name_for_type()
@@ -43,6 +52,7 @@ class TunnelInterface:
         self.delete_interface()
 
 class WireguardTunnel(TunnelInterface):
+    """ Wireguard interface """
     def getbasename(self) -> str:
         return "sown-wg"
     
@@ -73,7 +83,7 @@ class WireguardTunnel(TunnelInterface):
 
     # Delete this interface
     def delete_interface(self) -> None:
-        if self.interface_created != True:
+        if self.interface_created is not True:
             return
         
         # Find the interface
@@ -89,6 +99,7 @@ class WireguardTunnel(TunnelInterface):
 
     # Get peer info. We only set up one peer and this is only equipped to handle that!
     def __get_peer_info(self) -> dict:
+        """ Get wireguard-specific peer information """
         wg = WireGuard()
 
         # Get current interface info
@@ -99,11 +110,14 @@ class WireguardTunnel(TunnelInterface):
 
     # Is the peer more than peer_max_noact seconds without activity? TODO: CONFIG ITEM
     def is_peer_alive(self) -> bool:
+        """ Check if wireguard peer has handshaked recently """
         # Get peer info
         peer_info = self.__get_peer_info()
 
         # Parse last handshake datetime
-        last_handshake = dateutil.parser.parse(peer_info["WGPEER_A_LAST_HANDSHAKE_TIME"]["latest handshake"])
+        last_handshake = dateutil.parser.parse(
+            peer_info["WGPEER_A_LAST_HANDSHAKE_TIME"]["latest handshake"]
+        )
 
         # Check if peer is dead
         return (datetime.datetime.now() - last_handshake).total_seconds() <= 300 # TODO: Add config entry for dead time

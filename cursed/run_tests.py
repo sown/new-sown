@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 import unittest
 import ipaddress
 from pyroute2 import NDB, WireGuard, IPRoute
@@ -27,7 +29,6 @@ class TestWireguardTunnel(unittest.TestCase):
             self.assertFalse(tun.is_peer_alive()) # Is our fictional peer dead?
         finally:
             tun.delete_interface()
-            pass
 
         with IPRoute() as ipr:
                 interface = ipr.link_lookup(ifname=tun.ifname)
