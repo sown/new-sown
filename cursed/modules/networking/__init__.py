@@ -31,9 +31,10 @@ class TunnelInterface:
 
         return ifname
 
-    def __init__(self, int_type: TunnelType, peer_addrs: list[IPv4Network | IPv6Network], local_addrs: list[IPv4Network | IPv6Network]):
+    def __init__(self, int_type: TunnelType, peer_addrs: list[IPv4Network | IPv6Network], local_addrs: list[IPv4Network | IPv6Network], auto_name = True):
         self.int_type = int_type
-        self.ifname = self.__get_next_int_name_for_type()
+        if auto_name:
+            self.ifname = self.__get_next_int_name_for_type()
         self.peer_addrs = peer_addrs
         self.local_addrs = local_addrs
         self.interface_created = False
@@ -53,6 +54,7 @@ class WireguardTunnel(TunnelInterface):
                 for local_addr in self.local_addrs:
                     link.add_ip(local_addr.with_prefixlen)
                 link.set(state='up')
+            ndb.close()
 
         # TODO: Set up firewall here!
                     
@@ -106,8 +108,8 @@ class WireguardTunnel(TunnelInterface):
         # Check if peer is dead
         return (datetime.datetime.now() - last_handshake).total_seconds() <= 300 # TODO: Add config entry for dead time
             
-    def __init__(self, peer_addrs, local_addrs, listen_port, peer_pubkey, own_privkey):
+    def __init__(self, peer_addrs, local_addrs, listen_port, peer_pubkey, own_privkey, auto_name=True):
         self.peer_pubkey = peer_pubkey
         self.own_privkey = own_privkey
         self.listen_port = listen_port
-        super().__init__(TunnelInterface.TunnelType.WIREGUARD, peer_addrs, local_addrs)
+        super().__init__(TunnelInterface.TunnelType.WIREGUARD, peer_addrs, local_addrs, auto_name=auto_name)
